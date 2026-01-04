@@ -1,54 +1,16 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="utf-8">
-    <title>GTBR</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GTBR Landing</title>
+    <link rel="stylesheet" href="styles/base.css" />
   </head>
-
   <body>
-    <h1>Get the Ball Rolling</h1>
-    <p>Site in development.</p>
-
-    <script>
-    (function () {
-      const EVENTS_KEY = "gtbr_events";
-      const BROWSER_ID_KEY = "gtbr_browser_id";
-      const SESSION_ID_KEY = "gtbr_session_id";
-
-      function getOrCreate(key, storage) {
-        let value = storage.getItem(key);
-        if (!value) {
-          value = crypto.randomUUID();
-          storage.setItem(key, value);
-        }
-        return value;
-      }
-
-      const browserId = getOrCreate(BROWSER_ID_KEY, localStorage);
-      const sessionId = getOrCreate(SESSION_ID_KEY, sessionStorage);
-
-      const event = {
-        event_type: "page_view",
-        timestamp_client: new Date().toISOString(),
-        timezone_offset_minutes: new Date().getTimezoneOffset(),
-        url: location.href,
-        path: location.pathname,
-        referrer: document.referrer || "",
-        browser_id: browserId,
-        session_id: sessionId,
-        user_agent: navigator.userAgent,
-        language: navigator.language,
-        viewport: {
-          width: window.innerWidth,
-          height: window.innerHeight
-        },
-        visibility_state: document.visibilityState
-      };
-
-      const events = JSON.parse(localStorage.getItem(EVENTS_KEY) || "[]");
-      events.push(event);
-      localStorage.setItem(EVENTS_KEY, JSON.stringify(events));
-    })();
-    </script>
+    <div id="app"></div>
+    <div id="fade-overlay">
+      <div id="gtbr-text">GTBR</div>
+    </div>
+    <script type="module" src="src/main.js"></script>
   </body>
 </html>
