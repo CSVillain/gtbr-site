@@ -505,7 +505,7 @@
     ctx.fillStyle = "rgba(230,237,247,0.92)";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.font = "300 0px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
+    ctx.font = "300 100px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
     // letterspacing via manual draw
     const text = "GTBR";
     const spacing = 100;
