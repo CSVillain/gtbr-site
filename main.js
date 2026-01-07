@@ -7,20 +7,26 @@
   const DPR = Math.min(2, window.devicePixelRatio || 1);
 
   function resize() {
-    canvas.width = Math.floor(window.innerWidth * DPR);
-    canvas.height = Math.floor(window.innerHeight * DPR);
-    canvas.style.width = window.innerWidth + "px";
-    canvas.style.height = window.innerHeight + "px";
+    const vw = window.visualViewport ? window.visualViewport.width : window.innerWidth;
+    const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    canvas.width = Math.floor(vw * DPR);
+    canvas.height = Math.floor(vh * DPR);
+    canvas.style.width = vw + "px";
+    canvas.style.height = vh + "px";
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   }
   window.addEventListener("resize", resize);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", resize);
+    window.visualViewport.addEventListener("scroll", resize);
+  }
   resize();
 
   // ------------------------------------------------------------
   // World/layout constants (tuned to the approved mockup layout)
   // ------------------------------------------------------------
-  const W = () => window.innerWidth;
-  const H = () => window.innerHeight;
+  const W = () => (window.visualViewport ? window.visualViewport.width : window.innerWidth);
+  const H = () => (window.visualViewport ? window.visualViewport.height : window.innerHeight);
 
   // Scene framing: run sits upper-left to mid; ocean occupies lower third.
   const waterY = () => Math.round(H() * 0.62);
@@ -80,7 +86,17 @@
   const ocean = {
     phase: 0,
     offset: 0,
-    y: waterY()
+    highlightDrift: 0,
+    sheenShift: 0,
+    y: waterY(),
+    spray: [],
+    sprayTimer: 0
+  };
+
+  const title = {
+    bubbles: [],
+    timer: 0,
+    emitPoints: []
   };
 
   // ------------------------------------------------------------
@@ -117,6 +133,10 @@
   }
 
   function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+  function randBetween(min, max) {
+    return min + Math.random() * (max - min);
+  }
 
   // ------------------------------------------------------------
   // Rendering helpers (procedural illustration style)
@@ -261,9 +281,29 @@
     const y0 = waterY();
     ocean.y = y0;
 
+    updateOcean(dt);
     drawOceanBase(y0);
-    drawOceanSurface(dt);
+    drawOceanSwells();
     drawOceanHighlights();
+    drawOceanSheen();
+    drawOceanSpray();
+  }
+
+  function updateOcean(dt) {
+    const w = W();
+    const driftPeriod = 2000;
+    ocean.phase += dt * 0.9;
+    ocean.offset = (ocean.offset + dt * 220) % driftPeriod;
+    ocean.highlightDrift = (ocean.highlightDrift + dt * 160) % 1600;
+    ocean.sheenShift = (ocean.sheenShift + dt * 110) % 1200;
+    ocean.sprayTimer += dt;
+
+    if (ocean.sprayTimer > 0.12) {
+      ocean.sprayTimer -= 0.12;
+      emitOceanSpray(randBetween(0, w), ocean.y + randBetween(6, 14), 2);
+    }
+
+    updateSprayParticles(dt);
   }
 
   function drawOceanBase(y0) {
@@ -276,64 +316,172 @@
 
     // Deep body: static weight with a vertical depth gradient
     const grad = ctx.createLinearGradient(0, y0, 0, h);
-    grad.addColorStop(0.00, "#0a1f3f");
-    grad.addColorStop(0.45, "#08172f");
-    grad.addColorStop(1.00, "#020611");
+    grad.addColorStop(0.00, "#041125");
+    grad.addColorStop(0.45, "#03132f");
+    grad.addColorStop(1.00, "#010309");
     ctx.fillStyle = grad;
     ctx.fillRect(0, y0, w, h - y0);
+
+    const glows = [
+      { x: w * 0.25, y: y0 + 30, r: w * 0.65, alpha: 0.12 },
+      { x: w * 0.75, y: y0 + 70, r: w * 0.9, alpha: 0.08 }
+    ];
+    for (const glow of glows) {
+      const rg = ctx.createRadialGradient(glow.x, glow.y, glow.r * 0.2, glow.x, glow.y, glow.r);
+      rg.addColorStop(0, `rgba(48,92,150,${glow.alpha})`);
+      rg.addColorStop(1, "rgba(2,5,12,0)");
+      ctx.fillStyle = rg;
+      ctx.fillRect(0, y0, w, h - y0);
+    }
 
     ctx.restore();
   }
 
-  // Surface body: drifting motion with layered frequencies for fluid flow
-  function drawOceanSurface(dt) {
+  function drawOceanSwells() {
     const w = W();
-    const surfaceTop = ocean.y + 14;
-    const height = 46;
+    const pad = 220;
+    const baseY = ocean.y + 12;
+    const bands = [
+      { offset: -6, amp: 26, secondary: 10, freq: 0.006, speed: 0.4, alpha: 0.32, depth: 20 },
+      { offset: 16, amp: 20, secondary: 12, freq: 0.005, speed: 0.32, alpha: 0.26, depth: 30 },
+      { offset: 30, amp: 14, secondary: 8, freq: 0.004, speed: 0.28, alpha: 0.2, depth: 42 }
+    ];
 
-    ocean.phase += dt * 0.6;
-    ocean.offset = (ocean.offset + dt * 22) % Math.max(w, 1);
-
-    ctx.save();
-    ctx.translate(-ocean.offset, 0);
-    ctx.globalAlpha = 0.85;
-    ctx.fillStyle = "#163f74";
-    ctx.beginPath();
-    ctx.moveTo(0, surfaceTop);
-
-    for (let x = 0; x <= w + 80; x += 12) {
-      const nx = x * 0.015;
-      const y =
-        surfaceTop +
-        Math.sin(nx + ocean.phase) * 6 +
-        Math.sin(nx * 0.55 + ocean.phase * 1.8) * 3 +
-        Math.sin(nx * 0.18 + ocean.phase * 0.9) * 2;
-      ctx.lineTo(x, y);
+    for (let i = 0; i < bands.length; i++) {
+      const band = bands[i];
+      const drift = ocean.offset * band.speed;
+      const start = -pad;
+      const end = w + pad;
+      ctx.save();
+      ctx.globalAlpha = 0.85;
+      ctx.beginPath();
+      ctx.moveTo(start, baseY + band.offset + band.depth);
+      for (let x = start; x <= end; x += 16) {
+        const waveX = x + drift;
+        const nx = waveX * band.freq + ocean.phase * 0.9 + i * 1.3;
+        const y =
+          baseY +
+          band.offset +
+          Math.sin(nx) * band.amp +
+          Math.sin(nx * 0.6) * band.secondary;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(end, baseY + band.offset + band.depth + 8);
+      ctx.lineTo(start, baseY + band.offset + band.depth + 8);
+      ctx.closePath();
+      ctx.fillStyle = `rgba(14,28,62,${band.alpha})`;
+      ctx.fill();
+      ctx.restore();
     }
-
-    ctx.lineTo(w + 80, surfaceTop + height);
-    ctx.lineTo(0, surfaceTop + height);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
   }
 
   // Specular highlights: thin, faster phase cues that reinforce sheen
   function drawOceanHighlights() {
     const w = W();
+    const pad = 180;
+    const start = -pad;
+    const end = w + pad;
+    const drift = ocean.highlightDrift;
     ctx.save();
     ctx.strokeStyle = "rgba(180,220,255,0.28)";
     ctx.lineWidth = 1.3;
     ctx.beginPath();
 
-    for (let x = 0; x <= w; x += 16) {
-      const y = ocean.y + Math.sin(x * 0.02 + ocean.phase * 1.6) * 2.2;
-      if (x === 0) ctx.moveTo(x, y);
+    for (let x = start; x <= end; x += 8) {
+      const waveX = x + drift;
+      const y =
+        ocean.y +
+        Math.sin(waveX * 0.02 + ocean.phase * 1.6) * 2.2 +
+        Math.cos(waveX * 0.012 + ocean.phase * 0.8) * 1.2 +
+        4;
+      if (x === start) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     }
 
     ctx.stroke();
+
+    ctx.lineWidth = 0.9;
+    ctx.strokeStyle = "rgba(220,238,255,0.16)";
+    ctx.beginPath();
+    for (let x = start; x <= end; x += 12) {
+      const waveX = x + drift * 0.6;
+      const y = ocean.y + Math.sin(waveX * 0.022 + ocean.phase) * 1.6 + 5;
+      if (x === start) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
     ctx.restore();
+  }
+
+  function drawOceanSheen() {
+    const w = W();
+    const pad = 160;
+    const start = -pad;
+    const end = w + pad;
+    const drift = ocean.sheenShift;
+    ctx.save();
+    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = "rgba(255,255,255,0.08)";
+    ctx.beginPath();
+    for (let x = start; x <= end; x += 12) {
+      const waveX = x + drift;
+      const y = ocean.y + 3 + Math.sin(waveX * 0.016 + ocean.phase * 0.6) * 2.6;
+      if (x === start) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.lineTo(end, ocean.y + 24);
+    ctx.lineTo(start, ocean.y + 24);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawOceanSpray() {
+    if (!ocean.spray.length) return;
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    for (const p of ocean.spray) {
+      ctx.globalAlpha = p.alpha * 0.6;
+      ctx.fillStyle = "rgba(235,244,255,0.8)";
+      ctx.beginPath();
+      ctx.ellipse(p.x, p.y, p.r * 1.2, p.r * 0.4, p.tilt, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function updateSprayParticles(dt) {
+    for (let i = ocean.spray.length - 1; i >= 0; i--) {
+      const p = ocean.spray[i];
+      p.life -= dt;
+      if (p.life <= 0) {
+        ocean.spray.splice(i, 1);
+        continue;
+      }
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += 18 * dt;
+      p.alpha = clamp(p.life / p.maxLife, 0, 1);
+    }
+  }
+
+  function emitOceanSpray(x, y, count = 6, spread = 60, vertical = 18, speed = 80) {
+    for (let i = 0; i < count; i++) {
+      const vx = (Math.random() - 0.5) * 28;
+      const vy = -speed * (0.6 + Math.random() * 0.4);
+      const life = 0.6 + Math.random() * 0.5;
+      ocean.spray.push({
+        x: x + (Math.random() - 0.5) * spread,
+        y: y + Math.random() * vertical,
+        vx,
+        vy,
+        r: 0.9 + Math.random() * 1.3,
+        life,
+        maxLife: life,
+        tilt: randBetween(-0.35, 0.35),
+        alpha: 1
+      });
+    }
   }
 
   function drawBall() {
@@ -501,19 +649,138 @@
     const w = W(), h = H();
     if (state.titleAlpha <= 0) return;
     ctx.save();
-    ctx.globalAlpha = state.titleAlpha;
-    ctx.fillStyle = "rgba(230,237,247,0.92)";
+    drawUnderwaterBackdrop();
+    drawUnderwaterRays();
+    drawUnderwaterSurfaceWaves();
+    drawTitleBubbles();
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.font = "300 100px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
-    // letterspacing via manual draw
     const text = "GTBR";
+    const words = ["Get", "The", "Basics", "Right"];
     const spacing = 100;
     const total = (text.length - 0) * spacing;
     const cx = w * 0.50;
     const cy = h * 0.50;
+    const hold = 0.6;
+    const stagger = 0.55;
+    const rise = Math.max(260, h * 0.75);
+    ctx.font = "300 100px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
+
     for (let i = 0; i < text.length; i++) {
-      ctx.fillText(text[i], cx - total / 2 + i * spacing, cy);
+      const t = clamp((state.t - hold - i * stagger) / 1.5, 0, 1);
+      const ease = t * t * (3 - 2 * t);
+      const x = cx - total / 2 + i * spacing;
+      const baseAlpha = state.titleAlpha * (t > 0 ? 0 : 1);
+      if (baseAlpha > 0.01) {
+        ctx.globalAlpha = baseAlpha;
+        ctx.fillStyle = "rgba(230,237,247,0.92)";
+        ctx.fillText(text[i], x, cy);
+      }
+
+      if (t > 0) {
+        const y = cy - ease * rise;
+        ctx.save();
+        ctx.globalAlpha = state.titleAlpha * (0.35 + ease * 0.65);
+        ctx.fillStyle = "rgba(230,237,247,0.96)";
+        const letterWidth = ctx.measureText(text[i]).width;
+        ctx.textAlign = "left";
+        ctx.fillText(words[i], x - letterWidth / 2, y);
+        ctx.restore();
+      }
+    }
+    ctx.restore();
+  }
+
+  function drawUnderwaterBackdrop() {
+    const w = W();
+    const h = H();
+    ctx.save();
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, "rgba(16,46,86,0.55)");
+    grad.addColorStop(0.45, "rgba(6,22,46,0.75)");
+    grad.addColorStop(1, "rgba(2,8,18,0.9)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+
+    const glow = ctx.createRadialGradient(w * 0.5, h * 0.18, 80, w * 0.5, h * 0.2, w * 0.7);
+    glow.addColorStop(0, "rgba(90,150,210,0.18)");
+    glow.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, w, h);
+
+    const vignette = ctx.createRadialGradient(w * 0.5, h * 0.5, Math.min(w, h) * 0.2, w * 0.5, h * 0.55, Math.max(w, h));
+    vignette.addColorStop(0, "rgba(0,0,0,0)");
+    vignette.addColorStop(1, "rgba(0,0,0,0.45)");
+    ctx.fillStyle = vignette;
+    ctx.fillRect(0, 0, w, h);
+    ctx.restore();
+  }
+
+  function drawUnderwaterRays() {
+    const w = W();
+    const h = H();
+    const t = state.t;
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    ctx.globalAlpha = 0.35;
+    for (let i = 0; i < 4; i++) {
+      const x = w * (0.15 + i * 0.22) + Math.sin(t * 0.2 + i) * 40;
+      const ray = ctx.createLinearGradient(x, 0, x + 120, h);
+      ray.addColorStop(0, "rgba(120,170,220,0.18)");
+      ray.addColorStop(0.5, "rgba(80,130,200,0.06)");
+      ray.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = ray;
+      ctx.fillRect(x - 120, 0, 240, h);
+    }
+    ctx.restore();
+  }
+
+  function drawUnderwaterSurfaceWaves() {
+    const w = W();
+    const h = H();
+    const y0 = h * 0.18;
+    const pad = 140;
+    const t = state.t;
+    ctx.save();
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = "rgba(110,165,220,0.25)";
+    ctx.beginPath();
+    ctx.moveTo(-pad, y0);
+    for (let x = -pad; x <= w + pad; x += 10) {
+      const nx = x * 0.02 + t * 0.6;
+      const y = y0 + Math.sin(nx) * 6 + Math.sin(nx * 0.6 + t) * 3;
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(w + pad, y0 + 60);
+    ctx.lineTo(-pad, y0 + 60);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.globalAlpha = 0.4;
+    ctx.strokeStyle = "rgba(190,225,255,0.22)";
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    for (let x = -pad; x <= w + pad; x += 8) {
+      const nx = x * 0.03 + t * 0.9;
+      const y = y0 + 8 + Math.sin(nx) * 2.6 + Math.sin(nx * 0.4 + t * 0.6) * 1.4;
+      if (x === -pad) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawTitleBubbles() {
+    if (!title.bubbles.length) return;
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    for (const b of title.bubbles) {
+      ctx.globalAlpha = b.alpha;
+      ctx.beginPath();
+      ctx.ellipse(b.x, b.y, b.r * 1.1, b.r * 1.6, 0, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(190,220,255,0.7)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
     }
     ctx.restore();
   }
@@ -559,6 +826,31 @@
 
     // Reset camera
     cam.x = clamp(ball.x - W() * 0, camMin(), camMax());
+  }
+
+  function resetSequence() {
+    state.started = false;
+    state.done = false;
+    state.phase = "idle";
+    state.t = 0;
+    state.fade = 0;
+    state.titleAlpha = 0;
+    splash.active = false;
+    splash.t = 100;
+    splash.drops.length = 0;
+    splash.bubbles.length = 0;
+    title.bubbles.length = 0;
+    title.timer = 0;
+    title.emitPoints.length = 0;
+    ball.x = runX0 + 50;
+    ball.y = trackY(ball.x) - (ballR - grooveInset);
+    ball.vx = 0;
+    ball.vy = 0;
+    ball.spin = 0;
+    ball.alpha = 1;
+    u = 0;
+    uSpeed = 10;
+    cam.x = -1;
   }
 
   function step(dt) {
@@ -674,12 +966,18 @@
       state.fade = clamp(state.fade + dt * 1.25, 0, 1);
       if (state.fade >= 1) {
         state.phase = "title";
+        state.t = 0;
+        title.bubbles.length = 0;
+        title.timer = 0;
+        title.emitPoints.length = 0;
       }
     }
 
     else if (state.phase === "title") {
       state.titleAlpha = clamp(state.titleAlpha + dt * 1.4, 0, 1);
-      if (state.titleAlpha >= 1) {
+      updateTitleEmitPoints();
+      updateTitleBubbles(dt);
+      if (state.t > 5.0) {
         state.done = true;
       }
     }
@@ -713,6 +1011,9 @@
         r: 2 + Math.random() * 1.5
       });
     }
+
+    const splashX = x - cam.x;
+    emitOceanSpray(splashX, ocean.y + 6, 18, 64, 28, 150);
   }
 
   function spawnBubbles(x, y) {
@@ -735,6 +1036,79 @@
       if (b.life <= 0) continue;
       b.life -= dt;
       b.y += b.vy * dt;
+    }
+  }
+
+  function updateTitleEmitPoints() {
+    const w = W(), h = H();
+    const text = "GTBR";
+    const words = ["Get", "The", "Basics", "Right"];
+    const spacing = 100;
+    const total = (text.length - 0) * spacing;
+    const cx = w * 0.50;
+    const cy = h * 0.50;
+    const hold = 0.6;
+    const stagger = 0.55;
+    const rise = Math.max(260, h * 0.75);
+    title.emitPoints.length = 0;
+
+    ctx.save();
+    ctx.font = "300 100px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial";
+    for (let i = 0; i < text.length; i++) {
+      const t = clamp((state.t - hold - i * stagger) / 1.5, 0, 1);
+      if (t <= 0) continue;
+      const ease = t * t * (3 - 2 * t);
+      const x = cx - total / 2 + i * spacing;
+      const y = cy - ease * rise;
+      const letterWidth = ctx.measureText(text[i]).width;
+      const wordWidth = ctx.measureText(words[i]).width;
+      const center = x - letterWidth / 2 + wordWidth / 2;
+      title.emitPoints.push({ x: center, y });
+    }
+    ctx.restore();
+  }
+
+  function updateTitleBubbles(dt) {
+    const w = W();
+    const h = H();
+    title.timer += dt;
+    if (title.timer > 0.04) {
+      title.timer -= 0.04;
+      const life = 1.4 + Math.random() * 0.8;
+      title.bubbles.push({
+        x: Math.random() * w,
+        y: h + 20 + Math.random() * 40,
+        r: 2 + Math.random() * 2.5,
+        vy: -30 - Math.random() * 40,
+        life,
+        maxLife: life,
+        alpha: 0.4 + Math.random() * 0.3
+      });
+    }
+    for (const point of title.emitPoints) {
+      if (Math.random() < dt * 18) {
+        const life = 1.0 + Math.random() * 0.8;
+        title.bubbles.push({
+          x: point.x + (Math.random() - 0.5) * 100,
+          y: point.y + 26 + Math.random() * 24,
+          r: 1.6 + Math.random() * 2.4,
+          vy: -36 - Math.random() * 46,
+          life,
+          maxLife: life,
+          alpha: 0.55 + Math.random() * 0.3
+        });
+      }
+    }
+    for (let i = title.bubbles.length - 1; i >= 0; i--) {
+      const b = title.bubbles[i];
+      b.life -= dt;
+      if (b.life <= 0 || b.y < -40) {
+        title.bubbles.splice(i, 1);
+        continue;
+      }
+      b.y += b.vy * dt;
+      b.x += (Math.sin(b.y * 0.02) * 6 + (Math.random() - 0.5) * 4) * dt;
+      b.alpha = clamp(b.life / b.maxLife, 0, 1) * 0.7;
     }
   }
 
@@ -784,6 +1158,12 @@
   requestAnimationFrame(tick);
 
   // Interaction
-  canvas.addEventListener("pointerdown", () => startSequence(), { passive: true });
+  canvas.addEventListener("pointerdown", () => {
+    if (state.done) {
+      resetSequence();
+      return;
+    }
+    startSequence();
+  }, { passive: true });
 
 })();
