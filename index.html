@@ -2,12 +2,156 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>GTBR</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="GTBR architecture-map portfolio." />
+  <title>GTBR | System Portfolio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@500;700;800&display=swap"
+    rel="stylesheet"
+  />
   <link rel="stylesheet" href="./base.css" />
 </head>
 <body>
-  <canvas id="c" aria-label="GTBR landing animation"></canvas>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <div class="grid-overlay" aria-hidden="true"></div>
+
+  <header class="site-header" id="top">
+    <div class="site-header-inner shell">
+      <a class="brand" href="#top">GTBR</a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="#architecture">Principles</a>
+        <a href="#work">Work</a>
+        <a href="#contact">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero hero-orb" id="hero">
+      <div class="hero-orb-shell" aria-hidden="true">
+        <canvas id="hero-orb-canvas"></canvas>
+      </div>
+      <div class="hero-orb-copy shell">
+        <p class="eyebrow">Tommy Lowe</p>
+        <h1>Get the basics right.</h1>
+        <p class="lede">A simple operating model for consistent execution.</p>
+        <ul class="hero-principles" aria-label="Principles network controls">
+          <li>
+            <button class="hero-principle" type="button" data-principle="clarity">
+              <span class="swatch" aria-hidden="true"></span>
+              Clarity
+            </button>
+          </li>
+          <li>
+            <button class="hero-principle" type="button" data-principle="consistency">
+              <span class="swatch" aria-hidden="true"></span>
+              Consistency
+            </button>
+          </li>
+          <li>
+            <button class="hero-principle" type="button" data-principle="quality">
+              <span class="swatch" aria-hidden="true"></span>
+              Quality
+            </button>
+          </li>
+          <li>
+            <button class="hero-principle" type="button" data-principle="simplicity">
+              <span class="swatch" aria-hidden="true"></span>
+              Simplicity
+            </button>
+          </li>
+          <li>
+            <button class="hero-principle" type="button" data-principle="logic">
+              <span class="swatch" aria-hidden="true"></span>
+              Logic
+            </button>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="diagram shell principles" id="architecture" aria-labelledby="principles-title">
+      <div class="section-head reveal principles-head">
+        <p class="eyebrow">Principles</p>
+        <h2 id="principles-title">Get the basics right.</h2>
+        <p class="principles-intro">A simple operating model for consistent execution.</p>
+      </div>
+
+      <div class="principles-orb reveal" aria-label="Method notes">
+        <ul class="orb-principles">
+          <li><span>Frame the objective before execution.</span></li>
+          <li><span>Use visible logic and stable naming.</span></li>
+          <li><span>Enforce quality gates at each release step.</span></li>
+          <li><span>Reduce complexity until operations stay simple.</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="work shell" id="work" aria-labelledby="work-title">
+      <div class="section-head reveal">
+        <p class="eyebrow">Case Studies</p>
+        <h2 id="work-title">Work map</h2>
+      </div>
+      <div class="module-grid">
+        <article class="module reveal">
+          <div class="module-head">
+            <p class="module-id">M-01</p>
+            <span class="module-icon" aria-hidden="true">▦</span>
+          </div>
+          <h3>Content Intelligence Desktop</h3>
+          <div class="module-status">
+            <span class="status status-live">Case Study</span>
+            <span class="status">Desktop App</span>
+          </div>
+          <ul>
+            <li>Structured triage pipeline.</li>
+            <li>Lower review friction.</li>
+          </ul>
+        </article>
+        <article class="module reveal">
+          <div class="module-head">
+            <p class="module-id">M-02</p>
+            <span class="module-icon" aria-hidden="true">⌁</span>
+          </div>
+          <h3>Quality Gate Evaluator</h3>
+          <div class="module-status">
+            <span class="status status-live">Case Study</span>
+            <span class="status">Python</span>
+          </div>
+          <ul>
+            <li>Rule-based scoring engine.</li>
+            <li>Repeatable validation.</li>
+          </ul>
+        </article>
+        <article class="module reveal">
+          <div class="module-head">
+            <p class="module-id">M-03</p>
+            <span class="module-icon" aria-hidden="true">◫</span>
+          </div>
+          <h3>Brand System Infrastructure</h3>
+          <div class="module-status">
+            <span class="status status-live">Case Study</span>
+            <span class="status">Design System</span>
+          </div>
+          <ul>
+            <li>Unified asset system.</li>
+            <li>Faster UI decisions.</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer shell" id="contact">
+    <p class="eyebrow reveal">Contact</p>
+    <h2 class="reveal">Start a build conversation.</h2>
+    <p class="reveal">Email <a href="mailto:hello@gtbr.dev">hello@gtbr.dev</a>.</p>
+    <p class="footnote reveal">&copy; <span id="year"></span> GTBR</p>
+  </footer>
+
   <script src="./main.js" defer></script>
 </body>
 </html>
