@@ -6,15 +6,121 @@ const navSections = navLinks
   .filter(Boolean);
 const yearEl = document.getElementById('year');
 const orbCanvas = document.getElementById('hero-orb-canvas');
-const principleButtons = Array.from(document.querySelectorAll('.hero-principle'));
+const principleTabs = Array.from(document.querySelectorAll('.principle-tab'));
+const principlePanel = document.querySelector('.principle-panel');
+const principlePanelTitle = document.getElementById('principle-panel-title');
+const principlePanelSummary = document.getElementById('principle-panel-summary');
+const principlePanelList = document.getElementById('principle-panel-list');
+const principlesSection = document.getElementById('architecture');
+const heroFinalWord = document.getElementById('hero-final-word');
 const canObserve = typeof window !== 'undefined' && 'IntersectionObserver' in window;
 const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia
   ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
   : false;
 
+const getHeaderOffset = () => {
+  if (!siteHeader) {
+    return 0;
+  }
+  return Math.ceil(siteHeader.getBoundingClientRect().height) + 8;
+};
+
 if (yearEl) {
   yearEl.textContent = String(new Date().getFullYear());
 }
+
+const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
+
+const pickRandomWords = (pool, count) => {
+  const copy = [...pool];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(0, count);
+};
+
+const animateHeroFinalWord = async () => {
+  if (!heroFinalWord) {
+    return;
+  }
+
+  if (prefersReducedMotion) {
+    heroFinalWord.textContent = 'right';
+    heroFinalWord.classList.remove('is-wrong', 'is-fading');
+    heroFinalWord.classList.add('is-correct');
+    return;
+  }
+
+  const incorrectPool = [
+    'wrong',
+    'rough',
+    'messy',
+    'random',
+    'static',
+    'broken',
+    'rushed',
+    'blurry',
+    'chaos',
+    'noisy',
+    'flawed',
+    'shaky'
+  ];
+
+  const sequence = [...pickRandomWords(incorrectPool, 3), 'right'];
+
+  for (let i = 0; i < sequence.length; i += 1) {
+    const word = sequence[i];
+    const isFinal = i === sequence.length - 1;
+    heroFinalWord.classList.remove('is-wrong', 'is-fading', 'is-correct', 'is-flaring');
+    heroFinalWord.textContent = '';
+
+    for (let c = 0; c < word.length; c += 1) {
+      heroFinalWord.textContent += word[c];
+      await sleep(84);
+    }
+
+    if (isFinal) {
+      heroFinalWord.classList.add('is-correct');
+      if (!prefersReducedMotion) {
+        heroFinalWord.classList.add('is-flaring');
+        window.setTimeout(() => {
+          heroFinalWord.classList.remove('is-flaring');
+        }, 760);
+      }
+      return;
+    }
+
+    heroFinalWord.classList.add('is-wrong');
+    await sleep(440);
+    heroFinalWord.classList.add('is-fading');
+    await sleep(300);
+  }
+};
+
+void animateHeroFinalWord();
+
+const defaultPrincipleId = 'logic';
+let principlesInView = false;
+
+const renderPrinciplePanel = (id) => {
+  if (!principlePanel || !principlePanelTitle || !principlePanelSummary || !principlePanelList) {
+    return;
+  }
+  const sourceButton = principleTabs.find((button) => button.dataset.principle === id);
+  if (!sourceButton) {
+    return;
+  }
+  const titleText = sourceButton.textContent ? sourceButton.textContent.trim() : id;
+  const summaryText = sourceButton.dataset.summary || '';
+  const bulletText = sourceButton.dataset.bullets || '';
+  const bullets = bulletText.split('|').map((item) => item.trim()).filter(Boolean);
+
+  principlePanel.dataset.principle = id;
+  principlePanelTitle.textContent = titleText;
+  principlePanelSummary.textContent = summaryText;
+  principlePanelList.innerHTML = bullets.map((item) => `<li>${item}</li>`).join('');
+};
 
 const updateHeaderState = () => {
   if (!siteHeader) {
@@ -26,8 +132,33 @@ const updateHeaderState = () => {
 updateHeaderState();
 window.addEventListener('scroll', updateHeaderState, { passive: true });
 
+navLinks.forEach((link) => {
+  link.addEventListener('click', (event) => {
+    const href = link.getAttribute('href');
+    if (!href || !href.startsWith('#')) {
+      return;
+    }
+    const target = document.querySelector(href);
+    if (!target) {
+      return;
+    }
+
+    event.preventDefault();
+    const top = target.getBoundingClientRect().top + window.scrollY - getHeaderOffset();
+    window.scrollTo({
+      top: Math.max(0, top),
+      behavior: prefersReducedMotion ? 'auto' : 'smooth'
+    });
+
+    if (history.replaceState) {
+      history.replaceState(null, '', href);
+    }
+  });
+});
+
 if (!canObserve) {
   reveals.forEach((el) => el.classList.add('is-visible'));
+  principlesInView = Boolean(principlesSection);
 } else {
   const revealObserver = new IntersectionObserver(
     (entries) => {
@@ -60,28 +191,82 @@ if (!canObserve) {
         });
       });
     },
-    { threshold: 0.45 }
+    {
+      threshold: 0.4,
+      rootMargin: `-${getHeaderOffset()}px 0px -52% 0px`
+    }
   );
 
   navSections.forEach((section) => navObserver.observe(section));
+
+  if (principlesSection) {
+    const principlesObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          principlesInView = entry.isIntersecting;
+        });
+      },
+      {
+        threshold: 0.22,
+        rootMargin: '-14% 0px -24% 0px'
+      }
+    );
+    principlesObserver.observe(principlesSection);
+  }
 }
 
 if (orbCanvas) {
   const ctx = orbCanvas.getContext('2d');
   if (ctx) {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-
-    const NODE_COUNT = 1200;
-    const AMBIENT_COUNT = 260;
-    const RING_COUNT = 90;
-    const NEIGHBORS_PER_NODE = 5;
+    const getNetworkProfile = (viewportWidth) => {
+      if (prefersReducedMotion) {
+        return {
+          nodeCount: viewportWidth < 700 ? 540 : 760,
+          ambientCount: viewportWidth < 700 ? 90 : 130,
+          ringCount: viewportWidth < 700 ? 24 : 36,
+          neighborsPerNode: 4,
+          ambientRate: 0
+        };
+      }
+      if (viewportWidth < 700) {
+        return {
+          nodeCount: 900,
+          ambientCount: 160,
+          ringCount: 40,
+          neighborsPerNode: 4,
+          ambientRate: 5.5
+        };
+      }
+      if (viewportWidth < 1100) {
+        return {
+          nodeCount: 1180,
+          ambientCount: 210,
+          ringCount: 62,
+          neighborsPerNode: 5,
+          ambientRate: 8.2
+        };
+      }
+      return {
+        nodeCount: 1450,
+        ambientCount: 260,
+        ringCount: 90,
+        neighborsPerNode: 5,
+        ambientRate: 10
+      };
+    };
+    let profile = getNetworkProfile(window.innerWidth);
+    let NODE_COUNT = profile.nodeCount;
+    let AMBIENT_COUNT = profile.ambientCount;
+    let RING_COUNT = profile.ringCount;
+    let NEIGHBORS_PER_NODE = profile.neighborsPerNode;
 
     const principles = [
-      { id: 'clarity', color: '#63f5ff', direction: { x: -0.58, y: 0.33, z: 0.74 } },
-      { id: 'consistency', color: '#4f8dff', direction: { x: 0.5, y: 0.35, z: 0.72 } },
-      { id: 'quality', color: '#9f7bff', direction: { x: -0.45, y: -0.35, z: 0.82 } },
-      { id: 'simplicity', color: '#59e0a8', direction: { x: 0.38, y: -0.5, z: 0.78 } },
-      { id: 'logic', color: '#ff9b5f', direction: { x: -0.06, y: 0.86, z: 0.5 } }
+      { id: 'logic', color: '#ffd166', direction: { x: -0.06, y: 0.86, z: 0.5 } },
+      { id: 'clarity', color: '#4dd2ff', direction: { x: -0.58, y: 0.33, z: 0.74 } },
+      { id: 'scale', color: '#7c5cff', direction: { x: 0.5, y: 0.35, z: 0.72 } },
+      { id: 'growth', color: '#ff5fc7', direction: { x: -0.45, y: -0.35, z: 0.82 } },
+      { id: 'value', color: '#39e39a', direction: { x: 0.38, y: -0.5, z: 0.78 } },
     ];
 
     let width = 0;
@@ -93,23 +278,44 @@ if (orbCanvas) {
     let rotationY = 0.48;
     let targetX = rotationX;
     let targetY = rotationY;
+    let focusStrength = 0;
     let activePrincipleId = null;
     let pinnedPrincipleId = null;
+    let selectedPrincipleId = defaultPrincipleId;
     let lastFrameMs = start;
+    let ambientEmitAccumulator = 0;
 
     const nodes = [];
     const edges = [];
     const ambient = [];
     const rings = [];
+    const ambientSignals = [];
     let receptorEnergy = new Float32Array(0);
+    let synapseFlareEnergy = new Float32Array(0);
     const pathways = principles.map((p) => ({
       ...p,
       nodeIndices: new Set(),
       edgeIndices: [],
       focus: { x: 0, y: 0, z: 1 },
-      emitAccumulator: 0
+      emitAccumulator: 0,
+      energy: 0.46,
+      targetEnergy: 0.46,
+      burstCooldown: 0
     }));
     const pathwaySignals = new Map(pathways.map((path) => [path.id, []]));
+
+    const getEffectiveFocusPrincipleId = () => (
+      principlesInView ? selectedPrincipleId : null
+    );
+
+    const updatePrincipleTabState = () => {
+      principleTabs.forEach((tab) => {
+        const isSelected = tab.dataset.principle === selectedPrincipleId;
+        tab.classList.toggle('is-active', isSelected);
+        tab.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+        tab.setAttribute('tabindex', isSelected ? '0' : '-1');
+      });
+    };
 
     const rand = (a, b) => a + Math.random() * (b - a);
 
@@ -128,6 +334,11 @@ if (orbCanvas) {
       const g = parseInt(hex.slice(3, 5), 16);
       const b = parseInt(hex.slice(5, 7), 16);
       return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    };
+
+    const pseudoNoise = (seedA, seedB) => {
+      const n = Math.sin(seedA * 127.1 + seedB * 311.7) * 43758.5453;
+      return n - Math.floor(n);
     };
 
     const rotatePoint = (x, y, z, ax, ay) => {
@@ -201,6 +412,7 @@ if (orbCanvas) {
         nodes.push(node);
       }
       receptorEnergy = new Float32Array(nodes.length);
+      synapseFlareEnergy = new Float32Array(nodes.length);
     };
 
     const initAmbient = () => {
@@ -313,24 +525,48 @@ if (orbCanvas) {
       signals.push({
         edgeIndex,
         progress: Math.random() * 0.2,
-        speed: rand(0.55, 1.5),
-        life: rand(0.7, 1.55),
-        size: rand(1.4, 2.8)
+        speed: rand(0.45, 1.2 + path.energy * 0.9),
+        life: rand(0.65, 1.25 + path.energy * 0.75),
+        size: rand(1, 2 + path.energy * 1.15),
+        seed: Math.random() * 1000,
+        jitterAmp: rand(0.3, 1.1),
+        polarity: Math.random() > 0.5 ? 1 : -1
+      });
+    };
+
+    const spawnAmbientSignal = () => {
+      if (edges.length === 0) {
+        return;
+      }
+      const edgeIndex = Math.floor(Math.random() * edges.length);
+      ambientSignals.push({
+        edgeIndex,
+        progress: Math.random() * 0.35,
+        speed: rand(0.2, 0.52),
+        life: rand(0.7, 1.45),
+        size: rand(0.7, 1.4),
+        seed: Math.random() * 1000,
+        jitterAmp: rand(0.2, 0.7)
       });
     };
 
     const setActivePrinciple = (id, pinned = false) => {
+      selectedPrincipleId = id;
       activePrincipleId = id;
       if (pinned) {
         pinnedPrincipleId = id;
+      } else {
+        pinnedPrincipleId = id;
       }
-
-      principleButtons.forEach((button) => {
-        button.classList.toggle('is-active', button.dataset.principle === activePrincipleId);
-      });
+      renderPrinciplePanel(id);
+      if (principlePanel) {
+        principlePanel.setAttribute('aria-labelledby', `principle-tab-${id}`);
+      }
+      updatePrincipleTabState();
 
       const pathway = pathways.find((p) => p.id === activePrincipleId);
-      if (pathway) {
+      if (pathway && principlesInView) {
+        focusStrength = 1;
         targetY = Math.atan2(pathway.focus.x, pathway.focus.z);
         targetX = -Math.asin(Math.max(-1, Math.min(1, pathway.focus.y))) * 0.9;
       }
@@ -340,33 +576,46 @@ if (orbCanvas) {
       }
     };
 
-    const clearActiveIfNotPinned = () => {
-      if (pinnedPrincipleId) {
+    const selectTabByIndex = (idx, moveFocus = false) => {
+      if (!principleTabs.length) {
         return;
       }
-      activePrincipleId = null;
-      principleButtons.forEach((button) => button.classList.remove('is-active'));
-      if (prefersReducedMotion) {
-        drawFrame(performance.now());
+      const bounded = ((idx % principleTabs.length) + principleTabs.length) % principleTabs.length;
+      const tab = principleTabs[bounded];
+      const id = tab.dataset.principle;
+      if (!id) {
+        return;
+      }
+      setActivePrinciple(id, true);
+      if (moveFocus) {
+        tab.focus();
       }
     };
 
-    principleButtons.forEach((button) => {
-      const id = button.dataset.principle;
-      button.addEventListener('mouseenter', () => {
-        pinnedPrincipleId = null;
-        setActivePrinciple(id);
-      });
-      button.addEventListener('mouseleave', clearActiveIfNotPinned);
-      button.addEventListener('focus', () => setActivePrinciple(id));
-      button.addEventListener('blur', clearActiveIfNotPinned);
-      button.addEventListener('click', () => {
-        if (pinnedPrincipleId === id) {
-          pinnedPrincipleId = null;
-          clearActiveIfNotPinned();
+    principleTabs.forEach((tab, index) => {
+      const id = tab.dataset.principle;
+      tab.addEventListener('click', () => setActivePrinciple(id, true));
+      tab.addEventListener('focus', () => setActivePrinciple(id, true));
+      tab.addEventListener('keydown', (event) => {
+        if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+          event.preventDefault();
+          selectTabByIndex(index + 1, true);
           return;
         }
-        setActivePrinciple(id, true);
+        if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+          event.preventDefault();
+          selectTabByIndex(index - 1, true);
+          return;
+        }
+        if (event.key === 'Home') {
+          event.preventDefault();
+          selectTabByIndex(0, true);
+          return;
+        }
+        if (event.key === 'End') {
+          event.preventDefault();
+          selectTabByIndex(principleTabs.length - 1, true);
+        }
       });
     });
 
@@ -377,7 +626,28 @@ if (orbCanvas) {
       orbCanvas.width = Math.floor(width * dpr);
       orbCanvas.height = Math.floor(height * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      radius = Math.min(width, height) * 0.34;
+      radius = Math.min(width, height) * 0.46;
+
+       const nextProfile = getNetworkProfile(width);
+       const needsRebuild = nextProfile.nodeCount !== NODE_COUNT
+         || nextProfile.neighborsPerNode !== NEIGHBORS_PER_NODE
+         || nextProfile.ambientCount !== AMBIENT_COUNT
+         || nextProfile.ringCount !== RING_COUNT;
+       profile = nextProfile;
+       NODE_COUNT = profile.nodeCount;
+       AMBIENT_COUNT = profile.ambientCount;
+       RING_COUNT = profile.ringCount;
+       NEIGHBORS_PER_NODE = profile.neighborsPerNode;
+
+       if (needsRebuild) {
+         initNodes();
+         initAmbient();
+         initRings();
+         initEdges();
+         initPathways();
+         ambientSignals.length = 0;
+       }
+
       if (prefersReducedMotion) {
         drawFrame(performance.now());
       }
@@ -387,15 +657,27 @@ if (orbCanvas) {
       const dt = Math.min(0.05, Math.max(0.001, (timeMs - lastFrameMs) * 0.001));
       lastFrameMs = timeMs;
       const t = (timeMs - start) * 0.001;
+      const effectiveFocusPrincipleId = getEffectiveFocusPrincipleId();
+      updatePrincipleTabState();
       ctx.clearRect(0, 0, width, height);
 
-      if (!activePrincipleId && !pinnedPrincipleId) {
+      if (!effectiveFocusPrincipleId) {
         targetY = prefersReducedMotion ? 0.48 : 0.46 + Math.sin(t * 0.18) * 0.6;
         targetX = prefersReducedMotion ? 0.34 : 0.34 + Math.sin(t * 0.14) * 0.11;
+      } else if (!prefersReducedMotion) {
+        const focusPath = pathways.find((p) => p.id === effectiveFocusPrincipleId);
+        if (focusPath) {
+          targetY = Math.atan2(focusPath.focus.x, focusPath.focus.z) + Math.sin(t * 0.42) * 0.002;
+          targetX = (-Math.asin(Math.max(-1, Math.min(1, focusPath.focus.y))) * 0.9) + Math.cos(t * 0.34) * 0.0016;
+        }
       }
 
-      rotationX += (targetX - rotationX) * 0.05;
-      rotationY += (targetY - rotationY) * 0.05;
+      const hasFocus = Boolean(effectiveFocusPrincipleId);
+      const focusTarget = hasFocus ? 1 : 0;
+      focusStrength += (focusTarget - focusStrength) * 0.06;
+      const cameraEase = 0.038 + focusStrength * 0.044;
+      rotationX += (targetX - rotationX) * cameraEase;
+      rotationY += (targetY - rotationY) * cameraEase;
 
       const bgGlow = ctx.createRadialGradient(
         width * 0.5,
@@ -405,8 +687,8 @@ if (orbCanvas) {
         height * 0.5,
         radius * 1.86
       );
-      bgGlow.addColorStop(0, 'rgba(18, 54, 138, 0.34)');
-      bgGlow.addColorStop(0.55, 'rgba(10, 26, 66, 0.2)');
+      bgGlow.addColorStop(0, 'rgba(12, 18, 28, 0.22)');
+      bgGlow.addColorStop(0.55, 'rgba(6, 10, 16, 0.14)');
       bgGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
       ctx.fillStyle = bgGlow;
       ctx.fillRect(0, 0, width, height);
@@ -428,51 +710,110 @@ if (orbCanvas) {
       if (!prefersReducedMotion) {
         for (let i = 0; i < receptorEnergy.length; i += 1) {
           receptorEnergy[i] *= Math.max(0.0, 1 - dt * 2.4);
+          synapseFlareEnergy[i] *= Math.max(0.0, 1 - dt * 1.35);
         }
       }
-
-      const silhouette = ctx.createRadialGradient(width * 0.5, height * 0.52, radius * 0.3, width * 0.5, height * 0.52, radius * 1.08);
-      silhouette.addColorStop(0, 'rgba(6, 16, 40, 0.08)');
-      silhouette.addColorStop(1, 'rgba(3, 6, 12, 0.58)');
-      ctx.fillStyle = silhouette;
-      ctx.beginPath();
-      ctx.ellipse(width * 0.5, height * 0.52, radius * 1.12, radius * 0.9, 0, 0, Math.PI * 2);
-      ctx.fill();
 
       edges.forEach((edge) => {
         const a = rotated[edge.a].p;
         const b = rotated[edge.b].p;
         const dist = Math.hypot(a.x - b.x, a.y - b.y);
         if (dist > radius * 0.22) return;
-        const buzz = prefersReducedMotion ? 0.6 : 0.45 + Math.sin(t * 16 + edge.a * 0.07 + edge.b * 0.11) * 0.35;
-        const alpha = (1 - dist / (radius * 0.22)) * (0.03 + Math.max(0, buzz) * 0.09);
+        const edgeDepth = ((rotated[edge.a].raw.z + rotated[edge.b].raw.z) * 0.5 + radius) / (radius * 2);
+        const depthFactor = Math.max(0.18, 0.18 + edgeDepth * 0.92);
+        const buzz = prefersReducedMotion ? 0.5 : 0.44 + Math.sin(t * 18.5 + edge.a * 0.09 + edge.b * 0.13) * 0.4;
+        const alpha = (1 - dist / (radius * 0.22)) * (0.015 + Math.max(0, buzz) * 0.065) * depthFactor;
         if (alpha < 0.02) return;
         ctx.beginPath();
         ctx.moveTo(a.x, a.y);
         ctx.lineTo(b.x, b.y);
-        ctx.strokeStyle = `rgba(78, 170, 255, ${alpha.toFixed(3)})`;
-        ctx.lineWidth = 0.55 + Math.max(0, buzz) * 0.22;
+        ctx.strokeStyle = `rgba(84, 192, 255, ${alpha.toFixed(3)})`;
+        ctx.lineWidth = (0.35 + Math.max(0, buzz) * 0.22) * depthFactor;
         ctx.stroke();
 
-        if (!prefersReducedMotion && buzz > 0.72) {
+        if (!prefersReducedMotion && buzz > 0.68) {
           const sparkT = 0.45 + Math.sin(t * 9 + edge.a * 0.23 + edge.b * 0.17) * 0.1;
           const sx = a.x + (b.x - a.x) * sparkT;
           const sy = a.y + (b.y - a.y) * sparkT;
           ctx.beginPath();
-          ctx.arc(sx, sy, 0.7 + buzz * 0.5, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(132, 208, 255, ${(0.08 + (buzz - 0.7) * 0.2).toFixed(3)})`;
+          ctx.arc(sx, sy, 0.55 + buzz * 0.45, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(138, 225, 255, ${(0.06 + (buzz - 0.68) * 0.18).toFixed(3)})`;
           ctx.fill();
         }
       });
 
+      if (!prefersReducedMotion) {
+        ambientEmitAccumulator += dt * profile.ambientRate;
+        while (ambientEmitAccumulator >= 1) {
+          spawnAmbientSignal();
+          ambientEmitAccumulator -= 1;
+        }
+      }
+
+      for (let i = ambientSignals.length - 1; i >= 0; i -= 1) {
+        const signal = ambientSignals[i];
+        const edge = edges[signal.edgeIndex];
+        if (!edge) {
+          ambientSignals.splice(i, 1);
+          continue;
+        }
+
+        const a = rotated[edge.a].p;
+        const b = rotated[edge.b].p;
+        signal.progress += dt * signal.speed;
+        signal.life -= dt;
+
+        if (signal.life <= 0 || signal.progress >= 1.02) {
+          ambientSignals.splice(i, 1);
+          continue;
+        }
+
+        const p = Math.max(0, Math.min(1, signal.progress));
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const len = Math.hypot(dx, dy) || 1;
+        const nx = -dy / len;
+        const ny = dx / len;
+        const jitter = Math.sin(t * 27 + signal.seed + p * 11) * signal.jitterAmp;
+        const x = a.x + dx * p + nx * jitter;
+        const y = a.y + dy * p + ny * jitter;
+        const pulseAlpha = Math.max(0.08, signal.life * 0.34);
+
+        ctx.globalCompositeOperation = 'lighter';
+        const shimmer = ctx.createRadialGradient(x, y, 0, x, y, signal.size * 4.6);
+        shimmer.addColorStop(0, `rgba(168, 255, 248, ${(pulseAlpha + 0.28).toFixed(3)})`);
+        shimmer.addColorStop(1, 'rgba(120, 232, 255, 0)');
+        ctx.fillStyle = shimmer;
+        ctx.beginPath();
+        ctx.arc(x, y, signal.size * 4.6, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(x, y, signal.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(178, 244, 255, ${(pulseAlpha + 0.28).toFixed(3)})`;
+        ctx.fill();
+        ctx.globalCompositeOperation = 'source-over';
+      }
+
       pathways.forEach((path) => {
-        const isActive = activePrincipleId === path.id || pinnedPrincipleId === path.id;
-        const emphasis = activePrincipleId || pinnedPrincipleId ? (isActive ? 1 : 0.2) : 0.6;
-        const baseAlpha = 0.028 + emphasis * 0.16;
-        const pulseRate = isActive ? 12 : (activePrincipleId || pinnedPrincipleId ? 2.2 : 5.2);
+        const isActive = path.id === effectiveFocusPrincipleId;
+        path.targetEnergy = effectiveFocusPrincipleId ? (isActive ? 1 : 0.24) : 0.46;
+        const decayRate = isActive ? 0.26 : 0.16;
+        path.energy += (path.targetEnergy - path.energy) * decayRate;
+        const emphasis = effectiveFocusPrincipleId ? (isActive ? 1 : 0.38) : 0.58;
+        const baseAlpha = 0.02 + emphasis * 0.07 + path.energy * 0.09;
+        const pulseRate = (2 + path.energy * 7) * (isActive ? 1.24 : 1);
 
         if (!prefersReducedMotion) {
+          path.burstCooldown = Math.max(0, path.burstCooldown - dt);
           path.emitAccumulator += dt * pulseRate;
+          if (isActive && path.burstCooldown === 0 && Math.random() < dt * 1.8) {
+            const burstCount = 2 + Math.floor(Math.random() * 3);
+            for (let b = 0; b < burstCount; b += 1) {
+              spawnSignal(path);
+            }
+            path.burstCooldown = rand(0.18, 0.34);
+          }
           while (path.emitAccumulator >= 1) {
             spawnSignal(path);
             path.emitAccumulator -= 1;
@@ -485,14 +826,16 @@ if (orbCanvas) {
           const b = rotated[edge.b].p;
           const dist = Math.hypot(a.x - b.x, a.y - b.y);
           if (dist > radius * 0.3) return;
+          const edgeDepth = ((rotated[edge.a].raw.z + rotated[edge.b].raw.z) * 0.5 + radius) / (radius * 2);
+          const depthFactor = Math.max(0.25, 0.24 + edgeDepth * 0.9);
           const wave = prefersReducedMotion ? 0.7 : 0.45 + Math.sin(t * 9.4 + edgeIndex * 0.27) * 0.33;
-          const alpha = (1 - dist / (radius * 0.3)) * baseAlpha * wave;
+          const alpha = (1 - dist / (radius * 0.3)) * baseAlpha * wave * depthFactor;
           if (alpha < 0.02) return;
           ctx.beginPath();
           ctx.moveTo(a.x, a.y);
           ctx.lineTo(b.x, b.y);
           ctx.strokeStyle = toRgba(path.color, alpha.toFixed(3));
-          ctx.lineWidth = isActive ? 1.18 : 0.82;
+          ctx.lineWidth = (isActive ? 1.06 : 0.72) * depthFactor;
           ctx.stroke();
         });
       });
@@ -502,8 +845,8 @@ if (orbCanvas) {
         if (!signals || signals.length === 0) {
           return;
         }
-        const isActive = activePrincipleId === path.id || pinnedPrincipleId === path.id;
-        const visibility = activePrincipleId || pinnedPrincipleId ? (isActive ? 1 : 0.3) : 0.72;
+        const isActive = path.id === effectiveFocusPrincipleId;
+        const visibility = effectiveFocusPrincipleId ? (isActive ? 1 : 0.52) : 0.78;
 
         for (let i = signals.length - 1; i >= 0; i -= 1) {
           const signal = signals[i];
@@ -520,61 +863,108 @@ if (orbCanvas) {
           }
 
           const p = Math.max(0, Math.min(1, signal.progress));
-          const x = a.x + (b.x - a.x) * p;
-          const y = a.y + (b.y - a.y) * p;
+          const dx = b.x - a.x;
+          const dy = b.y - a.y;
+          const segLen = Math.hypot(dx, dy) || 1;
+          const txUnit = dx / segLen;
+          const tyUnit = dy / segLen;
+          const nxUnit = -tyUnit;
+          const nyUnit = txUnit;
+          const jitterWave = Math.sin(t * 28 + signal.seed * 0.7 + p * 8.2) * signal.jitterAmp * 0.36 * signal.polarity;
+          const jitterNoise = (pseudoNoise(signal.seed + p * 21, t * 0.5) - 0.5) * 0.42;
+          const jitter = jitterWave + jitterNoise;
+          const x = a.x + dx * p + nxUnit * jitter;
+          const y = a.y + dy * p + nyUnit * jitter;
 
           if (!prefersReducedMotion) {
             const nearSource = Math.max(0, 0.12 - p) / 0.12;
             const nearTarget = Math.max(0, p - 0.88) / 0.12;
             receptorEnergy[edge.a] = Math.min(1.15, receptorEnergy[edge.a] + nearSource * 0.34);
             receptorEnergy[edge.b] = Math.min(1.15, receptorEnergy[edge.b] + nearTarget * 0.34);
+            synapseFlareEnergy[edge.a] = Math.min(1.2, Math.max(synapseFlareEnergy[edge.a], nearSource * 1.05));
+            synapseFlareEnergy[edge.b] = Math.min(1.2, Math.max(synapseFlareEnergy[edge.b], nearTarget * 1.05));
           }
+          const sparkEnergy = 0.35 + visibility * 0.85 + path.energy * 0.7;
+          const conductionStart = Math.max(0, p - 0.018);
+          const conductionEnd = Math.min(1, p + 0.022);
+          const hx1 = a.x + dx * conductionStart;
+          const hy1 = a.y + dy * conductionStart;
+          const hx2 = a.x + dx * conductionEnd;
+          const hy2 = a.y + dy * conductionEnd;
 
-          const trailP = Math.max(0, p - 0.08);
-          const trailX = a.x + (b.x - a.x) * trailP;
-          const trailY = a.y + (b.y - a.y) * trailP;
+          ctx.globalCompositeOperation = 'lighter';
+          const conduitGlow = ctx.createLinearGradient(hx1, hy1, hx2, hy2);
+          conduitGlow.addColorStop(0, toRgba(path.color, (0.14 + visibility * 0.24).toFixed(3)));
+          conduitGlow.addColorStop(0.45, toRgba(path.color, (0.28 + visibility * 0.44).toFixed(3)));
+          conduitGlow.addColorStop(1, toRgba(path.color, (0.14 + visibility * 0.24).toFixed(3)));
+          ctx.strokeStyle = conduitGlow;
+          ctx.lineWidth = 1.2 + visibility * 0.8;
           ctx.beginPath();
-          ctx.moveTo(trailX, trailY);
-          ctx.lineTo(x, y);
-          ctx.strokeStyle = toRgba(path.color, (0.2 + visibility * 0.42).toFixed(3));
-          ctx.lineWidth = 1.2 + visibility * 0.9;
+          ctx.moveTo(hx1, hy1);
+          ctx.lineTo(hx2, hy2);
           ctx.stroke();
 
-          const glowRadius = signal.size + visibility * 1.4;
-          const dotGlow = ctx.createRadialGradient(x, y, 0, x, y, glowRadius * 2.5);
-          dotGlow.addColorStop(0, toRgba(path.color, (0.85 * visibility).toFixed(3)));
-          dotGlow.addColorStop(1, toRgba(path.color, '0'));
-          ctx.fillStyle = dotGlow;
+          const glowRadius = signal.size + visibility * 1.45;
+          const pulseAura = ctx.createRadialGradient(x, y, 0, x, y, glowRadius * 3.2);
+          pulseAura.addColorStop(0, toRgba(path.color, (0.25 + visibility * 0.52).toFixed(3)));
+          pulseAura.addColorStop(1, toRgba(path.color, '0'));
+          ctx.fillStyle = pulseAura;
           ctx.beginPath();
-          ctx.arc(x, y, glowRadius * 2.2, 0, Math.PI * 2);
+          ctx.arc(x, y, glowRadius * 3.2, 0, Math.PI * 2);
           ctx.fill();
 
-          ctx.fillStyle = toRgba(path.color, (0.45 + visibility * 0.5).toFixed(3));
+          ctx.fillStyle = toRgba(path.color, (0.5 + visibility * 0.38).toFixed(3));
           ctx.beginPath();
-          ctx.arc(x, y, glowRadius, 0, Math.PI * 2);
+          ctx.arc(x, y, glowRadius * 0.9, 0, Math.PI * 2);
           ctx.fill();
+
+          ctx.beginPath();
+          ctx.arc(x, y, Math.max(0.8, glowRadius * 0.36), 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255, 248, 238, ${(0.62 + visibility * 0.34).toFixed(3)})`;
+          ctx.fill();
+
+          if (!prefersReducedMotion) {
+            const microCount = Math.max(3, Math.floor(3 + sparkEnergy * 3.2));
+            for (let s = 0; s < microCount; s += 1) {
+              const seed = signal.seed + s * 9.1 + i * 0.3;
+              const angle = pseudoNoise(seed, t * 0.8) * Math.PI * 2;
+              const radiusOut = glowRadius * (0.75 + pseudoNoise(seed + 2.6, t) * 1.8);
+              const px = x + Math.cos(angle) * radiusOut;
+              const py = y + Math.sin(angle) * radiusOut;
+              const pa = 0.1 + visibility * 0.28;
+              ctx.beginPath();
+              ctx.arc(px, py, 0.4 + pseudoNoise(seed + 1.1, t) * 0.8, 0, Math.PI * 2);
+              ctx.fillStyle = toRgba(path.color, pa.toFixed(3));
+              ctx.fill();
+            }
+
+          }
+
+          ctx.globalCompositeOperation = 'source-over';
         }
       });
 
       rotated.forEach((node, i) => {
         const p = node.p;
         const depth = (node.raw.z + radius) / (radius * 2);
+        const depthFog = Math.max(0.2, 0.24 + depth * 0.9);
         const corticalGlow = node.cortical * 1.6;
         const receptor = receptorEnergy[i] || 0;
+        const synapseFlare = synapseFlareEnergy[i] || 0;
         const receptorFlicker = prefersReducedMotion ? 0 : (0.5 + Math.sin(t * 8 + i * 0.11) * 0.5) * receptor;
         let pointColor = 'rgba(132, 188, 255, 0.4)';
         let boost = 0;
 
         pathways.forEach((path) => {
           if (!path.nodeIndices.has(i)) return;
-          const isActive = activePrincipleId === path.id || pinnedPrincipleId === path.id;
-          const gain = activePrincipleId || pinnedPrincipleId ? (isActive ? 0.9 : 0.2) : 0.52;
+          const isActive = path.id === effectiveFocusPrincipleId;
+          const gain = effectiveFocusPrincipleId ? (isActive ? 0.9 : 0.2) : 0.52;
           boost = Math.max(boost, gain);
           pointColor = isActive ? toRgba(path.color, (0.22 + gain * 0.68).toFixed(3)) : pointColor;
         });
 
-        const size = 0.56 + p.s * 0.52 + corticalGlow + boost * 0.7 + receptorFlicker * 1.1;
-        const alpha = Math.min(0.98, 0.11 + depth * 0.38 + boost * 0.34 + corticalGlow * 0.2 + receptorFlicker * 0.5);
+        const size = (0.48 + p.s * 0.48 + corticalGlow + boost * 0.7 + receptorFlicker * 1.1) * depthFog;
+        const alpha = Math.min(0.98, (0.09 + depth * 0.38 + boost * 0.34 + corticalGlow * 0.2 + receptorFlicker * 0.5) * depthFog);
 
         ctx.beginPath();
         ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
@@ -593,6 +983,27 @@ if (orbCanvas) {
           ctx.beginPath();
           ctx.arc(p.x, p.y, size * 3.2, 0, Math.PI * 2);
           ctx.fill();
+        }
+
+        if (synapseFlare > 0.04) {
+          const flareRadius = size * (2.6 + synapseFlare * 2.2);
+          const synapseAura = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, flareRadius * 1.75);
+          synapseAura.addColorStop(0, `rgba(255, 252, 242, ${(0.28 + synapseFlare * 0.32).toFixed(3)})`);
+          synapseAura.addColorStop(0.2, `rgba(255, 226, 154, ${(0.24 + synapseFlare * 0.3).toFixed(3)})`);
+          synapseAura.addColorStop(0.48, `rgba(255, 162, 84, ${(0.16 + synapseFlare * 0.22).toFixed(3)})`);
+          synapseAura.addColorStop(0.78, `rgba(255, 90, 58, ${(0.1 + synapseFlare * 0.14).toFixed(3)})`);
+          synapseAura.addColorStop(1, 'rgba(255, 76, 56, 0)');
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.fillStyle = synapseAura;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, flareRadius * 1.75, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, Math.max(0.6, flareRadius * 0.16), 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255, 252, 246, ${(0.34 + synapseFlare * 0.28).toFixed(3)})`;
+          ctx.fill();
+          ctx.globalCompositeOperation = 'source-over';
         }
       });
 
@@ -634,7 +1045,8 @@ if (orbCanvas) {
     initPathways();
     resize();
 
-    setActivePrinciple('logic');
+    renderPrinciplePanel(defaultPrincipleId);
+    updatePrincipleTabState();
 
     drawFrame(start);
     if (!prefersReducedMotion) {
