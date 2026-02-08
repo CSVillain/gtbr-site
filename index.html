@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="Tommy Lowe" />
   <title>GTBR | Tommy Lowe</title>
+  <script>document.documentElement.classList.add('js');</script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -35,15 +36,12 @@
   <main id="main">
     <section class="hero hero-orb" id="hero">
       <div class="hero-orb-copy shell">
-        <h1>get the basics <span id="hero-final-word" class="hero-final-word">right</span></h1>
+        <h1><span id="hero-prefix-text" class="hero-prefix-text">get the basics </span><span id="hero-final-word" class="hero-final-word"></span></h1>
       </div>
     </section>
 
-    <section class="diagram shell principles" id="architecture" aria-labelledby="principles-title">
-      <div class="section-head reveal principles-head">
-        <h2 id="principles-title">Principles</h2>
-        <!-- <p class="principles-intro">Simple operating principles for consistent execution.</p> -->
-      </div>
+    <section class="diagram shell principles" id="architecture" aria-labelledby="principles-subheading">
+      <h2 id="principles-subheading" class="section-heading">Principles</h2>
 
       <div class="principles-layout reveal" aria-label="Principle detail panel">
         <div class="principles-tabs" role="tablist" aria-label="Principles">
@@ -53,7 +51,7 @@
             role="tab"
             id="principle-tab-logic"
             aria-controls="principle-panel"
-            aria-selected="true"
+            aria-selected="false"
             tabindex="0"
             data-principle="logic"
             data-summary="When complexity rises, I default to structure: smaller parts, clear boundaries, and reusable patterns. That discipline keeps solutions practical in the short term and resilient in the long term."
@@ -119,22 +117,24 @@
           </button>
         </div>
 
-        <article class="principle-panel" id="principle-panel" role="tabpanel" aria-labelledby="principle-tab-logic">
-          <h3 id="principle-panel-title">Logic</h3>
-          <p id="principle-panel-summary">When complexity rises, I default to structure: smaller parts, clear boundaries, and reusable patterns. That discipline keeps solutions practical in the short term and resilient in the long term.</p>
-          <ul id="principle-panel-list">
-            <li>Structure and sustainability come before speed for its own sake.</li>
-            <li>Evidence, not instinct alone, decides the direction.</li>
-            <li>Only essential complexity stays; the rest gets removed.</li>
-          </ul>
+        <div class="principles-signal" aria-hidden="true">
+          <span class="principles-signal-node" data-principle="logic"></span>
+          <span class="principles-signal-node" data-principle="clarity"></span>
+          <span class="principles-signal-node" data-principle="scale"></span>
+          <span class="principles-signal-node" data-principle="growth"></span>
+          <span class="principles-signal-node" data-principle="value"></span>
+        </div>
+
+        <article class="principle-panel" id="principle-panel" role="tabpanel" aria-label="Principle details">
+          <h3 id="principle-panel-heading" class="principle-panel-heading"></h3>
+          <p id="principle-panel-summary"></p>
+          <ul id="principle-panel-list"></ul>
         </article>
       </div>
     </section>
 
-    <section class="work shell" id="work" aria-labelledby="work-title">
-      <div class="section-head reveal">
-        <h2 id="work-title">Projects</h2>
-      </div>
+    <section class="work shell" id="work" aria-labelledby="work-subheading">
+      <h2 id="work-subheading" class="section-heading">Projects</h2>
       <div class="module-grid">
         <article class="module reveal">
           <div class="module-head">
@@ -186,8 +186,8 @@
   </main>
 
   <footer class="site-footer shell" id="contact">
-    <p class="eyebrow reveal">Contact</p>
-    <h2 class="reveal">Want to chat?</h2>
+    <h2 id="contact-subheading" class="section-heading">Contact</h2>
+    <p class="contact-intro reveal">Want to chat?</p>
     <p class="reveal">Email <a href="mailto:hello@gtbr.dev">hello@gtbr.dev</a>.</p>
     <p class="footnote reveal">&copy; <span id="year"></span> GTBR</p>
   </footer>
