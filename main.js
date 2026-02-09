@@ -1,6 +1,7 @@
 const siteHeader = document.querySelector('.site-header');
 const projectCardsRoot = document.getElementById('project-cards');
 const PROJECT_STACK_ICONS = {
+  html: '<svg viewBox="0 0 24 24" role="presentation"><path d="M5 3h14l-1.2 15.2L12 21l-5.8-2.8L5 3Z" /></svg>',
   python: '<svg viewBox="0 0 24 24" role="presentation"><path d="M8 3h6a3 3 0 0 1 3 3v3H9a2 2 0 0 0-2 2v3H5V6a3 3 0 0 1 3-3Z" /><path d="M16 21h-6a3 3 0 0 1-3-3v-3h8a2 2 0 0 0 2-2v-3h2v8a3 3 0 0 1-3 3Z" /></svg>',
   tauri: '<svg viewBox="0 0 24 24" role="presentation"><path d="M12 3l8 14H4L12 3Z" /></svg>',
   svelte: '<svg viewBox="0 0 24 24" role="presentation"><path d="M16 5c-1-1.3-3.8-1.7-6-.8C7.9 5 7 6.5 7.3 8c.4 2 2.8 2.4 4.7 2.8 2.1.4 3.3.9 3.2 2.2-.2 2-3 2.5-4.9 2.2-1.5-.2-2.7-.8-3.4-1.7" /></svg>',
@@ -8,7 +9,11 @@ const PROJECT_STACK_ICONS = {
   javascript: '<svg viewBox="0 0 24 24" role="presentation"><path d="M9 4c-1.5 0-2 1-2 2.2v2.1C7 9.5 6.5 10 5.3 10H4v4h1.3c1.2 0 1.7.5 1.7 1.7v2.1C7 19 7.5 20 9 20M15 4c1.5 0 2 1 2 2.2v2.1c0 1.2.5 1.7 1.7 1.7H20v4h-1.3c-1.2 0-1.7.5-1.7 1.7v2.1c0 1.2-.5 2.2-2 2.2" /></svg>',
   figma: '<svg viewBox="0 0 24 24" role="presentation"><path d="M9 3h6a3 3 0 0 1 0 6H9zM9 9h6a3 3 0 0 1 0 6H9zM9 15h3a3 3 0 1 1-3 3zM9 3v18" /></svg>',
   tokens: '<svg viewBox="0 0 24 24" role="presentation"><path d="M12 3l7 4v10l-7 4-7-4V7l7-4Z" /></svg>',
-  llm: '<svg viewBox="0 0 24 24" role="presentation"><path d="M4 12h16M12 4v16" /></svg>'
+  llm: '<svg viewBox="0 0 24 24" role="presentation"><path d="M4 12h16M12 4v16" /></svg>',
+  orchestration: '<svg viewBox="0 0 24 24" role="presentation"><path d="M6 6h4v4H6zM14 6h4v4h-4zM10 14h4v4h-4zM10 8h4M8 10v4M16 10v4" /></svg>',
+  ai: '<svg viewBox="0 0 24 24" role="presentation"><path d="M5 7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2zM9 9h2v6H9zM13 9h2.2a1.8 1.8 0 0 1 0 3.6H13zM13 12.6h2.4" /></svg>',
+  shield: '<svg viewBox="0 0 24 24" role="presentation"><path d="M12 3l7 3v5c0 5-2.8 8-7 10-4.2-2-7-5-7-10V6zM9 12l2 2 4-4" /></svg>',
+  strategy: '<svg viewBox="0 0 24 24" role="presentation"><path d="M4 6h10l-2.2 2.3L15 11.5l5-5L15 1.5 11.8 4.7 14 7H4zM4 18h10l-2.2-2.3L15 12.5l5 5-5 5-3.2-3.2L14 17H4z" /></svg>'
 };
 const PROJECT_GITHUB_ICON = '<svg viewBox="0 0 24 24" role="presentation"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.9a3.4 3.4 0 0 0-.94-2.66c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.4 3.4 0 0 0 9 18.13V22" /></svg>';
 const PROJECTS = [
@@ -16,12 +21,12 @@ const PROJECTS = [
     id: 'cntlx',
     stage: 'dev',
     title: 'CNTLX',
-    subheading: 'Intelligence Platform',
-    summary: 'Desktop intelligence workspace for high-volume review operations, with direct ownership of product direction and engineering implementation.',
+    subheading: 'Intelligence Engine',
+    summary: 'Desktop intelligence platform in active development, combining AI-assisted workflows, LLM-backed decision support, and structured pipeline orchestration for content operations.',
     objectives: [
-      'Direct ownership of architecture and workflow design',
-      'Build desktop tooling and review automation',
-      'Focus: throughput with reviewer confidence'
+      'Pipeline orchestration for ingestion, routing, scoring, and decision flows',
+      'Living metadata governance across entities, events, and provenance',
+      'Focus: AI-assisted throughput, quality control, and reliability'
     ],
     milestones: [
       { label: 'Design', value: 'Complete', state: 'complete' },
@@ -32,22 +37,23 @@ const PROJECTS = [
     stack: [
       { label: 'Python', icon: 'python' },
       { label: 'Tauri', icon: 'tauri' },
-      { label: 'Svelte', icon: 'svelte' }
+      { label: 'AI', icon: 'AI' },
+      { label: 'Governance', icon: 'shield' }
     ],
-    stackMeta: 'Python, Tauri, Svelte',
-    roleMeta: 'Product + Engineering Lead',
-    statusText: 'In development'
+    stackMeta: 'Python, Tauri, AI, Governance',
+    statusText: 'Development',
+    githubUrl: ''
   },
   {
     id: 'gtbr',
     stage: 'prod',
-    title: 'GTBR.dev',
-    subheading: 'Portfolio Experience Platform',
-    summary: 'Live GTBR portfolio platform with direct ownership of product narrative, UX system, and frontend implementation.',
+    title: 'GTBR',
+    subheading: 'Web Experience',
+    summary: 'Live portfolio site combining neural visuals, principles storytelling, and project case studies.',
     objectives: [
-      'Direct ownership of information architecture and narrative UX',
-      'Implement responsive frontend and interaction system',
-      'Focus: clarity, speed, and maintainability'
+      'Clear narrative structure across sections',
+      'Responsive interaction and motion system',
+      'Focus: clarity, performance, and maintainability'
     ],
     milestones: [
       { label: 'Design', value: 'Complete', state: 'complete' },
@@ -56,39 +62,39 @@ const PROJECTS = [
       { label: 'Documentation', value: 'In progress', state: 'progress' }
     ],
     stack: [
-      { label: 'Svelte', icon: 'svelte' },
+      { label: 'HTML', icon: 'html' },
       { label: 'CSS', icon: 'css' },
       { label: 'JavaScript', icon: 'javascript' }
     ],
-    stackMeta: 'Svelte, CSS, JavaScript',
-    roleMeta: 'Product Designer + Frontend Engineer',
-    statusText: 'In production'
+    stackMeta: 'HTML, CSS, JavaScript',
+    statusText: 'Production',
+    githubUrl: 'https://github.com/CSVillain/gtbr-site'
   },
   {
     id: 'knwlx',
-    stage: 'concept',
+    stage: 'design',
     title: 'KNWLX',
-    subheading: 'Concept Architecture',
-    summary: 'Early-stage knowledge platform concept with direct ownership of product thesis, architecture options, and validation path.',
+    subheading: 'Knowledge System',
+    summary: 'Development strategy to evolve CNTLX into a broader Knowledge Intelligence platform for advanced strategic decisioning.',
     objectives: [
-      'Direct ownership of problem framing and capability map',
-      'Define retrieval and orchestration options',
-      'Focus: validated concept before build'
+      'Define the strategic operating model beyond the CNTLX core',
+      'Establish common standards for knowledge artifacts, pipelines, and integrations',
+      'Shape a phased roadmap from concept to full deployment'
     ],
     milestones: [
-      { label: 'Design', value: 'In progress', state: 'progress' },
-      { label: 'Development', value: 'Planned', state: 'planned' },
-      { label: 'Production', value: 'Planned', state: 'planned' },
-      { label: 'Documentation', value: 'Planned', state: 'planned' }
+      { label: 'Strategy', value: 'In progress', state: 'progress' },
+      { label: 'Architecture', value: 'Planned', state: 'planned' },
+      { label: 'Pilot', value: 'Planned', state: 'planned' },
+      { label: 'Deployment', value: 'Planned', state: 'planned' }
     ],
     stack: [
-      { label: 'Figma', icon: 'figma' },
-      { label: 'Design Tokens', icon: 'tokens' },
-      { label: 'LLM Patterns', icon: 'llm' }
+      { label: 'AI', icon: 'AI' },
+      { label: 'Governance', icon: 'shield' },
+      { label: 'Strategy', icon: 'strategy' }
     ],
-    stackMeta: 'Figma, LLM patterns, system architecture',
-    roleMeta: 'Concept Lead + Systems Architect',
-    statusText: 'Concept'
+    stackMeta: 'Python, AI, governance, strategy',
+    statusText: 'Design',
+    githubUrl: ''
   }
 ];
 
@@ -106,9 +112,14 @@ const renderProjectCards = () => {
 
   const cardsMarkup = PROJECTS.map((project) => {
     const stageLabel = project.statusText;
+    const hasGithubLink = Boolean(project.githubUrl);
+    const githubMarkup = hasGithubLink
+      ? `<a class="module-icon-link" href="${escapeHtml(project.githubUrl)}" target="_blank" rel="noopener noreferrer" aria-label="GitHub repository" title="GitHub repository">${PROJECT_GITHUB_ICON}</a>`
+      : `<span class="module-icon-link is-disabled" role="img" aria-label="GitHub repository unavailable" title="GitHub repository unavailable">${PROJECT_GITHUB_ICON}</span>`;
     const stackIcons = project.stack.map((item) => {
-      const icon = PROJECT_STACK_ICONS[item.icon] || PROJECT_STACK_ICONS.llm;
-      return `<li><span class="stack-icon" role="img" aria-label="${escapeHtml(item.label)}" title="${escapeHtml(item.label)}">${icon}</span></li>`;
+      const iconKey = String(item.icon || '').toLowerCase();
+      const icon = PROJECT_STACK_ICONS[iconKey] || PROJECT_STACK_ICONS.llm;
+      return `<li><span class="stack-icon stack-icon-${escapeHtml(iconKey)}" role="img" aria-label="${escapeHtml(item.label)}" title="${escapeHtml(item.label)}">${icon}</span></li>`;
     }).join('');
 
     const objectives = project.objectives.map((item) => `<li>${escapeHtml(item)}</li>`).join('');
@@ -132,14 +143,12 @@ const renderProjectCards = () => {
           <span class="module-stage-label">${escapeHtml(stageLabel)}</span>
         </div>
         <div class="module-quick">
-          <a class="module-icon-link" href="#contact" aria-label="GitHub repository (private)" title="GitHub repository (private)">
-            ${PROJECT_GITHUB_ICON}
-          </a>
+          ${githubMarkup}
           <ul class="module-stack-icons" aria-label="Tech stack">
             ${stackIcons}
           </ul>
         </div>
-        <button class="module-select" type="button">Open Project</button>
+        <button class="module-select" type="button">Open project</button>
         <div class="module-detail">
           <p class="module-summary">${escapeHtml(project.summary)}</p>
           <div class="module-detail-grid">
@@ -152,9 +161,9 @@ const renderProjectCards = () => {
               <ul class="module-list module-list-steps">${milestones}</ul>
             </section>
           </div>
-          <p class="module-detail-meta"><strong>Stack:</strong> ${escapeHtml(project.stackMeta)} <strong>Status:</strong> ${escapeHtml(project.statusText)} <strong>Direct role:</strong> ${escapeHtml(project.roleMeta)}</p>
+          <p class="module-detail-meta"><strong>Stack:</strong> ${escapeHtml(project.stackMeta)} <strong>Status:</strong> ${escapeHtml(project.statusText)}</p>
           <div class="module-links">
-            <button class="module-back" type="button">Back to all projects</button>
+            <button class="module-back" type="button">Back to projects</button>
             <a class="module-command" href="#contact">GitHub</a>
             <a class="module-command" href="#contact">Full Case</a>
           </div>

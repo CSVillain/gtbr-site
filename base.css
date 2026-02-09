@@ -316,9 +316,13 @@ h3 {
 
 h1 {
   font-size: var(--fs-h1);
-  max-width: min(12.4ch, 92vw);
-  text-wrap: balance;
+  max-width: none;
+  text-wrap: normal;
   letter-spacing: -0.02em;
+}
+
+.hero-orb-copy h1 {
+  white-space: nowrap;
 }
 
 .hero-prefix-text {
@@ -1191,21 +1195,32 @@ footer[id] {
   height: 2rem;
   border: 1px solid rgba(114, 240, 207, 0.3);
   border-radius: 999px;
-  color: #cde6f7;
+  color: color-mix(in srgb, var(--stage-color) 72%, #d9ecfa 28%);
   text-decoration: none;
+  background: rgba(8, 12, 20, 0.58);
 }
 
 .module-icon-link svg {
   width: 1.1rem;
   height: 1.1rem;
   stroke: currentColor;
-  stroke-width: 1.7;
+  stroke-width: 1.6;
   fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .module-icon-link:hover {
   color: #f1fbff;
   border-color: rgba(114, 240, 207, 0.58);
+}
+
+.module-icon-link.is-disabled {
+  color: rgba(142, 154, 168, 0.6);
+  border-color: rgba(109, 120, 132, 0.36);
+  background: rgba(8, 10, 14, 0.42);
+  opacity: 0.72;
+  pointer-events: none;
 }
 
 .module-stack-icons {
@@ -1226,16 +1241,76 @@ footer[id] {
   border: 1px solid rgba(125, 138, 153, 0.42);
   border-radius: 999px;
   color: #a9c0d0;
+  background: rgba(7, 10, 16, 0.52);
 }
 
 .stack-icon svg {
   width: 1.05rem;
   height: 1.05rem;
+  fill: currentColor;
   stroke: currentColor;
-  stroke-width: 1.7;
-  fill: none;
+  stroke-width: 1;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.stack-icon-python {
+  color: #4da8ff;
+}
+
+.stack-icon-html {
+  color: #ff9c66;
+}
+
+.stack-icon-tauri {
+  color: #60d394;
+}
+
+.stack-icon-svelte {
+  color: #ff7f6e;
+}
+
+.stack-icon-css {
+  color: #55c8ff;
+}
+
+.stack-icon-javascript {
+  color: #f2c76a;
+}
+
+.stack-icon-figma {
+  color: #b89cff;
+}
+
+.stack-icon-tokens {
+  color: #7eb7f0;
+}
+
+.stack-icon-llm {
+  color: #c3a5ff;
+}
+
+.stack-icon-orchestration {
+  color: #72f0cf;
+}
+
+.stack-icon-ai {
+  color: #5ec7ff;
+}
+
+.stack-icon-shield {
+  color: #78e3b8;
+}
+
+.stack-icon-strategy {
+  color: #f2c76a;
+}
+
+.stack-icon-javascript svg,
+.stack-icon-llm svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
 }
 
 .module-select {
@@ -1587,6 +1662,11 @@ footer[id] {
 
   .site-nav {
     gap: 0.45rem;
+  }
+
+  .hero-orb-copy h1 {
+    white-space: normal;
+    display: block;
   }
 
   .module {
