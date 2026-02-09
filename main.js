@@ -1,4 +1,173 @@
 const siteHeader = document.querySelector('.site-header');
+const projectCardsRoot = document.getElementById('project-cards');
+const PROJECT_STACK_ICONS = {
+  python: '<svg viewBox="0 0 24 24" role="presentation"><path d="M8 3h6a3 3 0 0 1 3 3v3H9a2 2 0 0 0-2 2v3H5V6a3 3 0 0 1 3-3Z" /><path d="M16 21h-6a3 3 0 0 1-3-3v-3h8a2 2 0 0 0 2-2v-3h2v8a3 3 0 0 1-3 3Z" /></svg>',
+  tauri: '<svg viewBox="0 0 24 24" role="presentation"><path d="M12 3l8 14H4L12 3Z" /></svg>',
+  svelte: '<svg viewBox="0 0 24 24" role="presentation"><path d="M16 5c-1-1.3-3.8-1.7-6-.8C7.9 5 7 6.5 7.3 8c.4 2 2.8 2.4 4.7 2.8 2.1.4 3.3.9 3.2 2.2-.2 2-3 2.5-4.9 2.2-1.5-.2-2.7-.8-3.4-1.7" /></svg>',
+  css: '<svg viewBox="0 0 24 24" role="presentation"><path d="M5 4h3v16H5zM10.5 4h3v16h-3zM16 4h3v16h-3z" /></svg>',
+  javascript: '<svg viewBox="0 0 24 24" role="presentation"><path d="M9 4c-1.5 0-2 1-2 2.2v2.1C7 9.5 6.5 10 5.3 10H4v4h1.3c1.2 0 1.7.5 1.7 1.7v2.1C7 19 7.5 20 9 20M15 4c1.5 0 2 1 2 2.2v2.1c0 1.2.5 1.7 1.7 1.7H20v4h-1.3c-1.2 0-1.7.5-1.7 1.7v2.1c0 1.2-.5 2.2-2 2.2" /></svg>',
+  figma: '<svg viewBox="0 0 24 24" role="presentation"><path d="M9 3h6a3 3 0 0 1 0 6H9zM9 9h6a3 3 0 0 1 0 6H9zM9 15h3a3 3 0 1 1-3 3zM9 3v18" /></svg>',
+  tokens: '<svg viewBox="0 0 24 24" role="presentation"><path d="M12 3l7 4v10l-7 4-7-4V7l7-4Z" /></svg>',
+  llm: '<svg viewBox="0 0 24 24" role="presentation"><path d="M4 12h16M12 4v16" /></svg>'
+};
+const PROJECT_GITHUB_ICON = '<svg viewBox="0 0 24 24" role="presentation"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.9a3.4 3.4 0 0 0-.94-2.66c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.4 3.4 0 0 0 9 18.13V22" /></svg>';
+const PROJECTS = [
+  {
+    id: 'cntlx',
+    stage: 'dev',
+    title: 'CNTLX',
+    subheading: 'Intelligence Platform',
+    summary: 'Desktop intelligence workspace for high-volume review operations, with direct ownership of product direction and engineering implementation.',
+    objectives: [
+      'Direct ownership of architecture and workflow design',
+      'Build desktop tooling and review automation',
+      'Focus: throughput with reviewer confidence'
+    ],
+    milestones: [
+      { label: 'Design', value: 'Complete', state: 'complete' },
+      { label: 'Development', value: 'In progress', state: 'progress' },
+      { label: 'Production', value: 'Planned', state: 'planned' },
+      { label: 'Documentation', value: 'Planned', state: 'planned' }
+    ],
+    stack: [
+      { label: 'Python', icon: 'python' },
+      { label: 'Tauri', icon: 'tauri' },
+      { label: 'Svelte', icon: 'svelte' }
+    ],
+    stackMeta: 'Python, Tauri, Svelte',
+    roleMeta: 'Product + Engineering Lead',
+    statusText: 'In development'
+  },
+  {
+    id: 'gtbr',
+    stage: 'prod',
+    title: 'GTBR.dev',
+    subheading: 'Portfolio Experience Platform',
+    summary: 'Live GTBR portfolio platform with direct ownership of product narrative, UX system, and frontend implementation.',
+    objectives: [
+      'Direct ownership of information architecture and narrative UX',
+      'Implement responsive frontend and interaction system',
+      'Focus: clarity, speed, and maintainability'
+    ],
+    milestones: [
+      { label: 'Design', value: 'Complete', state: 'complete' },
+      { label: 'Development', value: 'Complete', state: 'complete' },
+      { label: 'Production', value: 'Complete', state: 'complete' },
+      { label: 'Documentation', value: 'In progress', state: 'progress' }
+    ],
+    stack: [
+      { label: 'Svelte', icon: 'svelte' },
+      { label: 'CSS', icon: 'css' },
+      { label: 'JavaScript', icon: 'javascript' }
+    ],
+    stackMeta: 'Svelte, CSS, JavaScript',
+    roleMeta: 'Product Designer + Frontend Engineer',
+    statusText: 'In production'
+  },
+  {
+    id: 'knwlx',
+    stage: 'concept',
+    title: 'KNWLX',
+    subheading: 'Concept Architecture',
+    summary: 'Early-stage knowledge platform concept with direct ownership of product thesis, architecture options, and validation path.',
+    objectives: [
+      'Direct ownership of problem framing and capability map',
+      'Define retrieval and orchestration options',
+      'Focus: validated concept before build'
+    ],
+    milestones: [
+      { label: 'Design', value: 'In progress', state: 'progress' },
+      { label: 'Development', value: 'Planned', state: 'planned' },
+      { label: 'Production', value: 'Planned', state: 'planned' },
+      { label: 'Documentation', value: 'Planned', state: 'planned' }
+    ],
+    stack: [
+      { label: 'Figma', icon: 'figma' },
+      { label: 'Design Tokens', icon: 'tokens' },
+      { label: 'LLM Patterns', icon: 'llm' }
+    ],
+    stackMeta: 'Figma, LLM patterns, system architecture',
+    roleMeta: 'Concept Lead + Systems Architect',
+    statusText: 'Concept'
+  }
+];
+
+const escapeHtml = (value) => String(value)
+  .replaceAll('&', '&amp;')
+  .replaceAll('<', '&lt;')
+  .replaceAll('>', '&gt;')
+  .replaceAll('"', '&quot;')
+  .replaceAll("'", '&#39;');
+
+const renderProjectCards = () => {
+  if (!projectCardsRoot) {
+    return;
+  }
+
+  const cardsMarkup = PROJECTS.map((project) => {
+    const stageLabel = project.statusText;
+    const stackIcons = project.stack.map((item) => {
+      const icon = PROJECT_STACK_ICONS[item.icon] || PROJECT_STACK_ICONS.llm;
+      return `<li><span class="stack-icon" role="img" aria-label="${escapeHtml(item.label)}" title="${escapeHtml(item.label)}">${icon}</span></li>`;
+    }).join('');
+
+    const objectives = project.objectives.map((item) => `<li>${escapeHtml(item)}</li>`).join('');
+    const milestones = project.milestones.map((step) => {
+      const stateClass = step.state === 'complete' ? ' class="is-complete"' : step.state === 'progress' ? ' class="is-progress"' : '';
+      return `<li${stateClass}><span>${escapeHtml(step.label)}</span><strong>${escapeHtml(step.value)}</strong></li>`;
+    }).join('');
+
+    return `
+      <article class="module reveal" data-project="${escapeHtml(project.id)}" data-stage="${escapeHtml(project.stage)}">
+        <div class="module-head">
+          <div class="module-head-copy">
+            <div class="module-title-row">
+              <h3>${escapeHtml(project.title)}</h3>
+            </div>
+            <p class="module-sub">${escapeHtml(project.subheading)}</p>
+          </div>
+        </div>
+        <div class="module-signal-row">
+          <span class="module-neural-path" aria-hidden="true"></span>
+          <span class="module-stage-label">${escapeHtml(stageLabel)}</span>
+        </div>
+        <div class="module-quick">
+          <a class="module-icon-link" href="#contact" aria-label="GitHub repository (private)" title="GitHub repository (private)">
+            ${PROJECT_GITHUB_ICON}
+          </a>
+          <ul class="module-stack-icons" aria-label="Tech stack">
+            ${stackIcons}
+          </ul>
+        </div>
+        <button class="module-select" type="button">Open Project</button>
+        <div class="module-detail">
+          <p class="module-summary">${escapeHtml(project.summary)}</p>
+          <div class="module-detail-grid">
+            <section class="module-detail-block" aria-label="Objectives">
+              <h4><svg viewBox="0 0 24 24" role="presentation"><path d="M4 12h16M12 4v16" /></svg>Objectives</h4>
+              <ul class="module-list">${objectives}</ul>
+            </section>
+            <section class="module-detail-block" aria-label="Milestones">
+              <h4><svg viewBox="0 0 24 24" role="presentation"><path d="M4 12h16M12 4v16" /></svg>Milestones</h4>
+              <ul class="module-list module-list-steps">${milestones}</ul>
+            </section>
+          </div>
+          <p class="module-detail-meta"><strong>Stack:</strong> ${escapeHtml(project.stackMeta)} <strong>Status:</strong> ${escapeHtml(project.statusText)} <strong>Direct role:</strong> ${escapeHtml(project.roleMeta)}</p>
+          <div class="module-links">
+            <button class="module-back" type="button">Back to all projects</button>
+            <a class="module-command" href="#contact">GitHub</a>
+            <a class="module-command" href="#contact">Full Case</a>
+          </div>
+        </div>
+      </article>
+    `;
+  }).join('');
+
+  projectCardsRoot.innerHTML = cardsMarkup;
+};
+
+renderProjectCards();
+
 const reveals = Array.from(document.querySelectorAll('.reveal'));
 const navLinks = Array.from(document.querySelectorAll('.site-nav a[href^="#"]'));
 const navSections = navLinks
@@ -11,6 +180,8 @@ const principlePanel = document.querySelector('.principle-panel');
 const principlePanelHeading = document.getElementById('principle-panel-heading');
 const principlePanelSummary = document.getElementById('principle-panel-summary');
 const principlePanelList = document.getElementById('principle-panel-list');
+const workSection = document.getElementById('work');
+const projectModules = Array.from(document.querySelectorAll('.work .module'));
 const principlesSection = document.getElementById('architecture');
 const principlesSignal = document.querySelector('.principles-signal');
 const principlesSignalNodes = Array.from(document.querySelectorAll('.principles-signal-node'));
@@ -330,6 +501,42 @@ window.addEventListener('hashchange', () => {
 window.setTimeout(() => {
   applyHashNavigation('auto');
 }, 0);
+
+if (workSection && projectModules.length) {
+  const setSelectedProject = (selectedModule) => {
+    const hasSelected = Boolean(selectedModule);
+    workSection.classList.toggle('is-drilled', hasSelected);
+    projectModules.forEach((module) => {
+      const isSelected = module === selectedModule;
+      module.classList.toggle('is-selected', isSelected);
+      const selectButton = module.querySelector('.module-select');
+      if (selectButton) {
+        selectButton.setAttribute('aria-expanded', isSelected ? 'true' : 'false');
+      }
+    });
+  };
+
+  projectModules.forEach((module) => {
+    const selectButton = module.querySelector('.module-select');
+    const backButton = module.querySelector('.module-back');
+
+    if (selectButton) {
+      selectButton.addEventListener('click', () => {
+        setSelectedProject(module);
+        const top = workSection.getBoundingClientRect().top + window.scrollY - getHeaderOffset();
+        window.scrollTo({ top: Math.max(0, top), behavior: prefersReducedMotion ? 'auto' : 'smooth' });
+      });
+    }
+
+    if (backButton) {
+      backButton.addEventListener('click', () => {
+        setSelectedProject(null);
+      });
+    }
+  });
+
+  setSelectedProject(null);
+}
 
 if (!canObserve) {
   reveals.forEach((el) => el.classList.add('is-visible'));
